@@ -2,12 +2,13 @@ import logging
 from datetime import datetime
 from typing import Iterable
 from zoneinfo import ZoneInfo
-from fastapi import Response
-import httpx
-import orjson
-from pydantic import BaseModel
+
 from cachetools import TTLCache
 from cachetools_async import cached
+from fastapi import Response
+import orjson
+from httpx import AsyncClient
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -64,25 +65,31 @@ def format_timeseries_to_day_temp_forecast(data: dict) -> Iterable[DayTempForeca
         )
 
 
-async def request_external_forecast(coordinates: Coordinates) -> dict:
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat={:.2f}&lon={:.2f}".format(
-                coordinates.lat, coordinates.lon
-            ),
-        )
-        response.raise_for_status()
-        return response.json()
+async def request_external_forecast(
+    coordinates: Coordinates, http_client: AsyncClient
+) -> dict:
+    response = await http_client.get(
+        "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat={:.2f}&lon={:.2f}".format(
+            coordinates.lat, coordinates.lon
+        ),
+    )
+    response.raise_for_status()
+    return response.json()
 
 
 # Cache for 60 seconds to avoid abusing external service
-@cached(cache=TTLCache(maxsize=1024, ttl=60))
-async def get_forecasts(coordinates: Coordinates) -> list[DayTempForecast]:
+@cached(
+    cache=TTLCache(maxsize=1024, ttl=60),
+    key=lambda coordinates, http_client: coordinates,
+)
+async def get_forecasts(
+    coordinates: Coordinates, http_client: AsyncClient
+) -> list[DayTempForecast]:
     """
     Get forecast from api.met.no corresponds to 14 hour Serbian time.
     """
     try:
-        data = await request_external_forecast(coordinates)
+        data = await request_external_forecast(coordinates, http_client)
     except Exception as exc:
         logger.error("Failed to get forecast from external server, error: %s", exc)
         return []
