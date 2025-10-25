@@ -1,0 +1,7 @@
+{
+  "name": "Python Dev Container",
+  "dockerFile": "Dockerfile",
+  "forwardPorts": [
+    8000
+  ],
+}
