@@ -6,6 +6,8 @@ from fastapi import Response
 import httpx
 import orjson
 from pydantic import BaseModel
+from cachetools import TTLCache
+from cachetools_async import cached
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,9 @@ class DayTempForecast(BaseModel):
 class Coordinates(BaseModel):
     lat: float
     lon: float
+
+    def __hash__(self):
+        return hash((self.lat, self.lon))
 
 
 BelgradeCoordinates = Coordinates(lat=44.81, lon=20.46)
@@ -70,6 +75,8 @@ async def request_external_forecast(coordinates: Coordinates) -> dict:
         return response.json()
 
 
+# Cache for 60 seconds to avoid abusing external service
+@cached(cache=TTLCache(maxsize=1024, ttl=60))
 async def get_forecasts(coordinates: Coordinates) -> list[DayTempForecast]:
     """
     Get forecast from api.met.no corresponds to 14 hour Serbian time.

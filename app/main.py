@@ -37,9 +37,6 @@ async def get_forecast(
         AfterValidator(check_longitude),
         Query(description="Longitude of the location"),
     ],
-    # ,
-    # Annotated[Union[str, None], AfterValidator(check_valid_id)]
-    # lon: float = Query(float, description="Longitude of the location"),
 ):
     """
     Return a forecast for requested location for available days corresponds to 14 hour Serbian time.
