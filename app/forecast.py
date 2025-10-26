@@ -82,7 +82,16 @@ async def request_external_forecast(
     cache=TTLCache(maxsize=1024, ttl=60),
     key=lambda coordinates, http_client: coordinates,
 )
-async def get_forecasts(
+async def get_forecast_cached(
+    coordinates: Coordinates, http_client: AsyncClient
+) -> list[DayTempForecast]:
+    """
+    Get forecast from api.met.no corresponds to 14 hour Serbian time.
+    """
+    return await get_forecast(coordinates, http_client)
+
+
+async def get_forecast(
     coordinates: Coordinates, http_client: AsyncClient
 ) -> list[DayTempForecast]:
     """
@@ -94,9 +103,15 @@ async def get_forecasts(
         logger.error("Failed to get forecast from external server, error: %s", exc)
         return []
 
-    forecast_per_days = list(
-        filter(filter_day_temp_forecast, format_timeseries_to_day_temp_forecast(data))
-    )
+    try:
+        forecast_per_days = list(
+            filter(
+                filter_day_temp_forecast, format_timeseries_to_day_temp_forecast(data)
+            )
+        )
+    except Exception as exc:
+        logger.error("Failed parse response, error: %s", exc)
+        return []
     return forecast_per_days
 
 

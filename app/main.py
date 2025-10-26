@@ -8,7 +8,7 @@ from pydantic import AfterValidator
 
 from app.forecast import (
     ORJSONIndentedResponse,
-    get_forecasts,
+    get_forecast_cached,
     BelgradeCoordinates,
     Coordinates,
 )
@@ -54,7 +54,7 @@ app = FastAPI(lifespan=lifespan)
     },
     response_class=ORJSONIndentedResponse,
 )
-async def get_forecast(
+async def app_get_forecast(
     request: Request,
     lat: Annotated[
         float,
@@ -73,7 +73,7 @@ async def get_forecast(
 
     coordinates = Coordinates(lat=lat, lon=lon)
     http_client = request.state.http_client
-    return await get_forecasts(coordinates, http_client)
+    return await get_forecast_cached(coordinates, http_client)
 
 
 @app.get(
@@ -93,13 +93,13 @@ async def get_forecast(
     },
     response_class=ORJSONIndentedResponse,
 )
-async def get_forecast_belgrade(request: Request):
+async def app_get_forecast_belgrade(request: Request):
     """
     Return a forecast for Belgrade for available days corresponds to 14 hour Serbian time.
     """
     http_client = request.state.http_client
     coordinates = BelgradeCoordinates
-    return await get_forecasts(coordinates, http_client)
+    return await get_forecast_cached(coordinates, http_client)
 
 
 if __name__ == "__main__":
