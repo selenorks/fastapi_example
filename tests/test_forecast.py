@@ -1,5 +1,9 @@
+from unittest.mock import AsyncMock, MagicMock
+
+import httpx
 import pytest
 from httpcore import URL
+from httpx import patch
 
 from app.forecast import (
     filter_day_temp_forecast,
@@ -161,7 +165,7 @@ POSITIVE_RESPONSE = {
 
 
 class ResponseMock:
-    def __init__(self, json_data: dict, raise_exception=None):
+    def __init__(self, json_data: dict|None, raise_exception=None):
         self.json_data = json_data
         self.raise_exception = raise_exception
 
